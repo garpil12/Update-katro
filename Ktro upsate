@@ -2251,7 +2251,7 @@ def restore_cmd(update, context):
         update.message.reply_text(f"❌ restore gagal\n{e}")
 
 # ================= MAIN =================
- def main():
+def main():
     global bot
 
     updater = Updater(
@@ -2293,7 +2293,7 @@ def restore_cmd(update, context):
 
     # 🔥 TAGALL MANUAL
     dp.add_handler(CommandHandler("tagall", tagall_cmd))
-    dp.add_handler(CommandHandler("cancel", cancel_cmd)) 
+    dp.add_handler(CommandHandler("cancel", cancel_cmd))
     dp.add_handler(CommandHandler("addbuttontag", addbuttontag_cmd))
 
     # 🔥 AUTOTAG COMMAND
@@ -2304,10 +2304,10 @@ def restore_cmd(update, context):
 
     # ================= CALLBACK =================
 
-    # 🔥 MANUAL TAG (KALAU MASIH DIPAKE)
+    # 🔥 MANUAL TAG
     dp.add_handler(CallbackQueryHandler(handle_durasi, pattern="^manualdur_"))
 
-    # 🔥 AUTOTAG FLOW (WAJIB URUT & GA BOLEH DUPLIKAT)
+    # 🔥 AUTOTAG FLOW (URUT)
     dp.add_handler(CallbackQueryHandler(pilih_jam, pattern="^jam_"))
     dp.add_handler(CallbackQueryHandler(pilih_menit, pattern="^menit_"))
     dp.add_handler(CallbackQueryHandler(pilih_durasi, pattern="^dur_"))
@@ -2351,7 +2351,7 @@ def restore_cmd(update, context):
     updater.start_polling(
         poll_interval=2.3,
         timeout=20,
-        drop_pending_updates=True   # 🔥 FIX DEPRECATED
+        drop_pending_updates=True
     )
 
     print("🚀 BOT RUNNING...")
