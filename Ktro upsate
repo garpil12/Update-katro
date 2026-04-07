@@ -6,6 +6,7 @@ import threading
 import asyncio
 import json
 import re
+import json
 import random   # 🔥 WAJIB
 import html     # 🔥 biar ga error escape
 from datetime import datetime
@@ -91,50 +92,113 @@ def save_partner(data):
     except Exception as e:
         print("❌ save error:", e)
 
-# ================= BUTTON FILE (BARU) =================
+# ================= BUTTON =================
+
 def load_buttons():
     if not os.path.exists(BUTTON_FILE):
+        print("⚠️ BUTTON FILE GA ADA")
         return {}
+
     try:
         with open(BUTTON_FILE, "r") as f:
-            return json.load(f)
+            data = json.load(f)
+            print("✅ BUTTON LOADED:", data)
+            return data
     except Exception as e:
-        print("❌ load button error:", e)
+        print("❌ LOAD BUTTON ERROR:", e)
         return {}
+
 
 def save_buttons(data):
     try:
-        with open(BUTTON_FILE, "w") as f:
+        temp_file = BUTTON_FILE + ".tmp"
+
+        with open(temp_file, "w") as f:
             json.dump(data, f, indent=2)
+
+        os.replace(temp_file, BUTTON_FILE)
+
         print("✅ BUTTON KE SAVE:", data)
+
     except Exception as e:
-        print("❌ save button error:", e)
+        print("❌ SAVE BUTTON ERROR:", e)
+
+
+# ================= AUTOTAG =================
 
 def load_autotag():
     global auto_data
+
     if not os.path.exists(AUTO_TAG_FILE):
+        print("⚠️ AUTOTAG FILE GA ADA")
         auto_data = {}
         return
+
     try:
         with open(AUTO_TAG_FILE, "r") as f:
             auto_data = json.load(f)
-    except:
+
+        print("✅ AUTOTAG LOADED:", auto_data)
+
+    except Exception as e:
+        print("❌ LOAD AUTOTAG ERROR:", e)
         auto_data = {}
 
+
 def save_autotag():
-    with open(AUTO_TAG_FILE, "w") as f:
-        json.dump(auto_data, f, indent=2)
+    try:
+        temp_file = AUTO_TAG_FILE + ".tmp"
+
+        with open(temp_file, "w") as f:
+            json.dump(auto_data, f, indent=2)
+
+        os.replace(temp_file, AUTO_TAG_FILE)
+
+        print("✅ AUTOTAG KE SAVE")
+
+    except Exception as e:
+        print("❌ SAVE AUTOTAG ERROR:", e)
+
+
+# ================= SAVE GROUP =================
 
 def save_last_group(update, context):
     user_id = str(update.effective_user.id)
     chat_id = update.effective_chat.id
 
-    if chat_id < 0:
-        if user_id not in auto_data:
-            auto_data[user_id] = {}
+    try:
+        # 🔥 HANYA GROUP
+        if chat_id < 0:
 
-        auto_data[user_id]["chat_id"] = chat_id
-        save_autotag()
+            # 🔥 JANGAN OVERWRITE DATA
+            if user_id not in auto_data:
+                auto_data[user_id] = {}
+
+            auto_data[user_id]["chat_id"] = chat_id
+            save_autotag()
+
+            print(f"📌 GROUP KE SAVE: {user_id} -> {chat_id}")
+
+            # 🔥 LOG KE TELEGRAM
+            try:
+                context.bot.send_message(
+                    LOG_CHAT_ID,
+                    f"📌 SET TARGET GROUP\n"
+                    f"👤 {user_id}\n"
+                    f"🎯 {chat_id}"
+                )
+            except Exception as log_err:
+                print("LOG ERROR:", log_err)
+
+    except Exception as e:
+        print("❌ SAVE GROUP ERROR:", e)
+        try:
+            context.bot.send_message(
+                LOG_CHAT_ID,
+                f"❌ ERROR SAVE GROUP\n👤 {user_id}\n{e}"
+            )
+        except Exception as log_err:
+            print("LOG ERROR:", log_err)
 
 # ================= PERSISTENT QUEUE =================
 def save_queue():
