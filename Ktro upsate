@@ -588,6 +588,7 @@ def clearauto(update, context):
 
 def auto_tag_worker(context):
     jakarta_tz = pytz.timezone("Asia/Jakarta")
+
     while True:
         try:
             now = datetime.now(jakarta_tz)
@@ -596,17 +597,23 @@ def auto_tag_worker(context):
             tanggal = now.strftime("%d-%m-%Y")
 
             for user_id, data in list(auto_data.items()):
+                target_chat = None
                 try:
                     if not data.get("active") or data.get("hour") is None:
                         continue
 
-                    if current_hour != data["hour"] or current_minute != data.get("minute",0):
+                    # 🔥 CEK JAM & MENIT
+                    if current_hour != data["hour"] or current_minute != data.get("minute", 0):
+                        continue
+
+                    # 🔥 1x sehari (WAJIB)
+                    if data.get("last_run") == tanggal:
                         continue
 
                     target_chat = int(data.get("chat_id", user_id))
                     text = data.get("text", "AUTO TAGALL")
 
-                    # 🔥 ANTI DUPLICATE
+                    # 🔥 ANTI DUPLICATE MEMORY
                     msg_key = f"{target_chat}_{text}_{tanggal}"
                     if msg_key in recent_messages:
                         continue
@@ -614,84 +621,118 @@ def auto_tag_worker(context):
 
                     # 🔥 RATE LIMIT
                     if rate_limit.get(target_chat, 0) > 5:
+                        context.bot.send_message(
+                            LOG_CHAT_ID,
+                            f"⛔ RATE LIMIT SKIP\n🎯 {target_chat}"
+                        )
                         continue
 
                     # 🔥 LOG START
-                    try:
-                        context.bot.send_message(
-                            LOG_CHAT_ID,
-                            f"🚀 AUTO TAG JALAN\n📅 {tanggal}\n👤 {user_id}\n🎯 {target_chat}\n🕒 {data['hour']:02d}:{data.get('minute',0):02d} WIB"
-                        )
-                    except Exception as e:
-                        print("LOG ERROR:", e)
+                    context.bot.send_message(
+                        LOG_CHAT_ID,
+                        f"🚀 AUTO TAG JALAN\n"
+                        f"📅 {tanggal}\n"
+                        f"👤 {user_id}\n"
+                        f"🎯 {target_chat}\n"
+                        f"🕒 {data['hour']:02d}:{data.get('minute',0):02d} WIB"
+                    )
 
-                    # 🔥 SMART RETRY
+                    success = False
+
+                    # 🔥 RETRY SYSTEM
                     for attempt in range(5):
                         try:
                             delay = random.uniform(2, 5) + (attempt * random.uniform(1, 3))
                             time.sleep(delay)
 
-                            duration = data.get("duration", 60) * 60
+                            duration = data.get("duration", 10) * 60
+
                             run_tagall_manual(context, target_chat, text, "normal", duration)
 
-                            # ✅ turunin limit & LOG SUCCESS
-                            rate_limit[target_chat] = max(0, rate_limit.get(target_chat, 0)-1)
-                            try:
-                                context.bot.send_message(
-                                    LOG_CHAT_ID,
-                                    f"✅ AUTO TAG SELESAI\n👤 {user_id}\n🎯 {target_chat}\n⏱ Durasi: {data.get('duration',60)} menit"
-                                )
-                            except: pass
+                            # ✅ SUCCESS
+                            success = True
+                            rate_limit[target_chat] = max(0, rate_limit.get(target_chat, 0) - 1)
+                            last_activity[target_chat] = time.time()
+
+                            context.bot.send_message(
+                                LOG_CHAT_ID,
+                                f"✅ AUTO TAG SELESAI\n"
+                                f"👤 {user_id}\n"
+                                f"🎯 {target_chat}\n"
+                                f"⏱ {data.get('duration',10)} menit"
+                            )
                             break
 
                         except Exception as e:
                             print(f"[RETRY {attempt+1}] ERROR:", e)
+
                             try:
                                 context.bot.send_message(
                                     LOG_CHAT_ID,
-                                    f"⚠️ RETRY {attempt+1} ERROR:\n{e}\n👤 {user_id}\n🎯 {target_chat}"
+                                    f"⚠️ RETRY {attempt+1}\n"
+                                    f"👤 {user_id}\n"
+                                    f"🎯 {target_chat}\n"
+                                    f"ERROR: {e}"
                                 )
-                            except: pass
+                            except Exception as log_err:
+                                print("LOG ERROR:", log_err)
 
                             if "Too Many Requests" in str(e):
-                                rate_limit[target_chat] = rate_limit.get(target_chat, 0)+1
-                                time.sleep(random.uniform(5,10))
+                                rate_limit[target_chat] = rate_limit.get(target_chat, 0) + 1
+                                time.sleep(random.uniform(5, 10))
 
-                            if attempt == 4:
-                                print("❌ GAGAL TOTAL:", target_chat)
-                                try:
-                                    context.bot.send_message(
-                                        LOG_CHAT_ID,
-                                        f"❌ GAGAL TOTAL AUTO TAG\n👤 {user_id}\n🎯 {target_chat}"
-                                    )
-                                except: pass
+                    # ❌ GAGAL TOTAL
+                    if not success:
+                        print("❌ GAGAL TOTAL:", target_chat)
+                        context.bot.send_message(
+                            LOG_CHAT_ID,
+                            f"❌ GAGAL TOTAL AUTO TAG\n"
+                            f"👤 {user_id}\n"
+                            f"🎯 {target_chat}"
+                        )
 
-                    # 🔥 MARK SUDAH JALAN
+                    # 🔥 SAVE LAST RUN
                     auto_data[user_id]["last_run"] = tanggal
-                    try: save_autotag()
+                    try:
+                        save_autotag()
                     except Exception as e:
                         print("SAVE ERROR:", e)
-                        try: context.bot.send_message(LOG_CHAT_ID, f"❌ SAVE ERROR: {e}")
-                        except: pass
+                        context.bot.send_message(
+                            LOG_CHAT_ID,
+                            f"❌ SAVE ERROR\n{e}\n👤 {user_id}"
+                        )
 
                 except Exception as e:
                     print("USER LOOP ERROR:", e)
-                    try: context.bot.send_message(LOG_CHAT_ID, f"❌ USER LOOP ERROR: {e}\n👤 {user_id}\n🎯 {target_chat}")
-                    except: pass
+                    try:
+                        context.bot.send_message(
+                            LOG_CHAT_ID,
+                            f"❌ USER LOOP ERROR\n"
+                            f"👤 {user_id}\n"
+                            f"🎯 {target_chat}\n"
+                            f"{e}"
+                        )
+                    except Exception as log_err:
+                        print("LOG ERROR:", log_err)
 
-            # 🔥 CLEAR & CLEAN RATE LIMIT
+            # 🔥 CLEAN MEMORY
             if len(recent_messages) > 500:
                 recent_messages.clear()
+
             for chat in list(rate_limit.keys()):
                 if time.time() - last_activity.get(chat, 0) > 60:
                     rate_limit[chat] = 0
 
         except Exception as e:
             print("WORKER FATAL ERROR:", e)
-            try: context.bot.send_message(LOG_CHAT_ID, f"❌ WORKER FATAL ERROR: {e}")
-            except: pass
+            try:
+                context.bot.send_message(
+                    LOG_CHAT_ID,
+                    f"❌ WORKER FATAL ERROR\n{e}"
+                )
+            except Exception as log_err:
+                print("LOG ERROR:", log_err)
 
-        # 🔥 FIXED SLEEP
         time.sleep(5)
 
 # ================= HANDLE DURASI =================
