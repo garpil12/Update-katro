@@ -505,15 +505,16 @@ def autotag_menu(update: Update, context: CallbackContext):
     try:
         if not context.args:
             update.message.reply_text("❌ /autotag pesan")
-            context.bot.send_message(
-                LOG_CHAT_ID,
-                f"❌ GAGAL SET AUTOTAG\n👤 {user_id}\nAlasan: Tidak ada pesan"
-            )
+            context.bot.send_message(LOG_CHAT_ID, f"❌ GAGAL SET AUTOTAG\n👤 {user_id}")
             return
 
         text = " ".join(context.args)
 
-        auto_data[user_id] = {
+        # ✅ JANGAN OVERWRITE
+        if user_id not in auto_data:
+            auto_data[user_id] = {}
+
+        auto_data[user_id].update({
             "text": text,
             "hour": None,
             "minute": None,
@@ -521,28 +522,24 @@ def autotag_menu(update: Update, context: CallbackContext):
             "active": False,
             "last_run": None,
             "chat_id": update.effective_chat.id
-        }
+        })
+
         save_autotag()
 
-        # 🔥 LOG SUKSES SET PESAN
         context.bot.send_message(
             LOG_CHAT_ID,
-            f"🟡 SET AUTOTAG\n"
-            f"👤 {user_id}\n"
-            f"💬 Pesan: {text}"
+            f"🟡 SET AUTOTAG\n👤 {user_id}\n💬 {text}"
         )
 
-        # 🔥 JAM + MENIT
+        # 🔥 PILIH JAM (DOANG)
         buttons = []
+        row = []
         for h in range(24):
-            row = []
-            for m in [0, 15, 30, 45]:
-                row.append(
-                    InlineKeyboardButton(
-                        f"{h:02d}:{m:02d}",
-                        callback_data=f"setjam_{h}_{m}"
-                    )
-                )
+            row.append(InlineKeyboardButton(f"{h:02d}", callback_data=f"jam_{h}"))
+            if len(row) == 6:
+                buttons.append(row)
+                row = []
+        if row:
             buttons.append(row)
 
         update.message.reply_text(
@@ -552,47 +549,75 @@ def autotag_menu(update: Update, context: CallbackContext):
 
     except Exception as e:
         print("AUTOTAG MENU ERROR:", e)
-        try:
-            context.bot.send_message(
-                LOG_CHAT_ID,
-                f"❌ ERROR AUTOTAG MENU\n👤 {user_id}\n{e}"
-            )
-        except Exception as ee:
-            print("LOG FAIL:", ee)
-
+        context.bot.send_message(LOG_CHAT_ID, f"❌ ERROR AUTOTAG MENU\n{e}")
 
 # ==== PILIH JAM ====
 def pilih_jam(update: Update, context: CallbackContext):
     query = update.callback_query
-    try:
-        query.answer()
-    except Exception as e:
-        print("ANSWER ERROR:", e)
+    query.answer()
 
     user_id = str(query.from_user.id)
 
     try:
-        # 🔥 CEK SESSION
         if user_id not in auto_data:
-            context.bot.send_message(
-                LOG_CHAT_ID,
-                f"❌ SESSION HILANG (PILIH JAM)\n👤 {user_id}"
-            )
+            load_autotag()
+
+        if user_id not in auto_data:
+            context.bot.send_message(LOG_CHAT_ID, f"❌ SESSION HILANG JAM\n👤 {user_id}")
             query.edit_message_text("❌ Session hilang, ulang /autotag")
             return
 
-        _, h, m = query.data.split("_")
-
-        auto_data[user_id]["hour"] = int(h)
-        auto_data[user_id]["minute"] = int(m)
+        jam = int(query.data.split("_")[1])
+        auto_data[user_id]["hour"] = jam
         save_autotag()
 
-        # 🔥 LOG PILIH JAM
         context.bot.send_message(
             LOG_CHAT_ID,
-            f"🕒 SET JAM\n👤 {user_id}\n🕒 {h}:{m}"
+            f"🕒 SET JAM\n👤 {user_id}\n🕒 {jam:02d}"
         )
 
+        # 🔥 PILIH MENIT
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("00", callback_data="menit_0"),
+             InlineKeyboardButton("15", callback_data="menit_15")],
+            [InlineKeyboardButton("30", callback_data="menit_30"),
+             InlineKeyboardButton("45", callback_data="menit_45")]
+        ])
+
+        query.edit_message_text(
+            f"🕒 JAM: {jam:02d}\nPilih menit:",
+            reply_markup=keyboard
+        )
+
+    except Exception as e:
+        print("PILIH JAM ERROR:", e)
+        context.bot.send_message(LOG_CHAT_ID, f"❌ ERROR PILIH JAM\n{e}")
+
+def pilih_menit(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+
+    user_id = str(query.from_user.id)
+
+    try:
+        if user_id not in auto_data:
+            load_autotag()
+
+        if user_id not in auto_data:
+            context.bot.send_message(LOG_CHAT_ID, f"❌ SESSION HILANG MENIT\n👤 {user_id}")
+            query.edit_message_text("❌ Session hilang, ulang /autotag")
+            return
+
+        menit = int(query.data.split("_")[1])
+        auto_data[user_id]["minute"] = menit
+        save_autotag()
+
+        context.bot.send_message(
+            LOG_CHAT_ID,
+            f"⏱ SET MENIT\n👤 {user_id}\n⏱ {menit}"
+        )
+
+        # 🔥 PILIH DURASI
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("10 MENIT", callback_data="dur_10"),
              InlineKeyboardButton("15 MENIT", callback_data="dur_15")],
@@ -600,20 +625,16 @@ def pilih_jam(update: Update, context: CallbackContext):
              InlineKeyboardButton("60 MENIT", callback_data="dur_60")]
         ])
 
+        h = auto_data[user_id]["hour"]
+
         query.edit_message_text(
-            f"✅ JAM: {h}:{m}\nPilih durasi:",
+            f"🕒 {h:02d}:{menit:02d}\nPilih durasi:",
             reply_markup=keyboard
         )
 
     except Exception as e:
-        print("PILIH JAM ERROR:", e)
-        try:
-            context.bot.send_message(
-                LOG_CHAT_ID,
-                f"❌ ERROR PILIH JAM\n👤 {user_id}\n{e}"
-            )
-        except Exception as log_err:
-            print("LOG ERROR:", log_err)
+        print("PILIH MENIT ERROR:", e)
+        context.bot.send_message(LOG_CHAT_ID, f"❌ ERROR PILIH MENIT\n{e}")
 
 # ==== PILIH DURASI ====
 def pilih_durasi(update: Update, context: CallbackContext):
@@ -626,6 +647,10 @@ def pilih_durasi(update: Update, context: CallbackContext):
     user_id = str(query.from_user.id)
 
     try:
+        # 🔥 RELOAD JAGA2
+        if user_id not in auto_data:
+            load_autotag()
+
         # 🔥 CEK SESSION
         if user_id not in auto_data:
             context.bot.send_message(
@@ -635,8 +660,18 @@ def pilih_durasi(update: Update, context: CallbackContext):
             query.edit_message_text("❌ Session hilang, ulang /autotag")
             return
 
+        # 🔥 AMBIL DURASI
         dur = int(query.data.split("_")[1])
 
+        # 🔥 LOG START (BIAR KELIATAN STEP NYA)
+        context.bot.send_message(
+            LOG_CHAT_ID,
+            f"⚙️ SET DURASI\n"
+            f"👤 {user_id}\n"
+            f"⏱ {dur} menit"
+        )
+
+        # 🔥 SAVE DATA
         auto_data[user_id]["duration"] = dur
         auto_data[user_id]["active"] = True
         save_autotag()
@@ -644,15 +679,17 @@ def pilih_durasi(update: Update, context: CallbackContext):
         h = auto_data[user_id].get("hour", 0)
         m = auto_data[user_id].get("minute", 0)
 
-        # 🔥 LOG AKTIF
+        # 🔥 LOG AKTIF FINAL
         context.bot.send_message(
             LOG_CHAT_ID,
             f"🟢 AUTOTAG AKTIF\n"
             f"👤 {user_id}\n"
             f"🕒 {h:02d}:{m:02d}\n"
-            f"⏱ {dur} menit"
+            f"⏱ {dur} menit\n"
+            f"📆 1x sehari"
         )
 
+        # 🔥 UPDATE UI USER
         query.edit_message_text(
             f"🚀 AUTO TAG AKTIF\n"
             f"🕒 {h:02d}:{m:02d}\n"
@@ -662,10 +699,14 @@ def pilih_durasi(update: Update, context: CallbackContext):
 
     except Exception as e:
         print("PILIH DURASI ERROR:", e)
+
+        # 🔥 LOG ERROR WAJIB MASUK
         try:
             context.bot.send_message(
                 LOG_CHAT_ID,
-                f"❌ ERROR PILIH DURASI\n👤 {user_id}\n{e}"
+                f"❌ ERROR PILIH DURASI\n"
+                f"👤 {user_id}\n"
+                f"{e}"
             )
         except Exception as log_err:
             print("LOG ERROR:", log_err)
@@ -2210,8 +2251,7 @@ def restore_cmd(update, context):
         update.message.reply_text(f"❌ restore gagal\n{e}")
 
 # ================= MAIN =================
-
-def main():
+ def main():
     global bot
 
     updater = Updater(
@@ -2225,7 +2265,7 @@ def main():
 
     bot = updater.bot
 
-    # 🔥 LOAD AUTO TAG DATA
+    # 🔥 LOAD DATA
     load_autotag()
 
     # 🔥 DATABASE
@@ -2251,31 +2291,34 @@ def main():
     dp.add_handler(CommandHandler("on", on_cmd))
     dp.add_handler(CommandHandler("bc", bc_cmd))
 
-    # 🔥 TAGALL (MANUAL)
+    # 🔥 TAGALL MANUAL
     dp.add_handler(CommandHandler("tagall", tagall_cmd))
     dp.add_handler(CommandHandler("cancel", cancel_cmd)) 
     dp.add_handler(CommandHandler("addbuttontag", addbuttontag_cmd))
 
-    # 🔥 AUTO TAG (PRIVATE ONLY)
+    # 🔥 AUTOTAG COMMAND
     dp.add_handler(CommandHandler("autotag", autotag_menu))
     dp.add_handler(CommandHandler("clearauto", clearauto))
     dp.add_handler(CommandHandler("onauto", onauto))
     dp.add_handler(CommandHandler("offauto", offauto))
+
     # ================= CALLBACK =================
-    # 🔥 MANUAL TAG (WAJIB PALING ATAS)
-    dp.add_handler(CallbackQueryHandler(handle_durasi, pattern="^dur_"))
 
-    # 🔥 AUTO TAG (WAJIB DI ATAS button_handler)
-    dp.add_handler(CallbackQueryHandler(pilih_jam, pattern="^setjam_"))
-    dp.add_handler(CallbackQueryHandler(pilih_durasi, pattern="^autodur_"))
+    # 🔥 MANUAL TAG (KALAU MASIH DIPAKE)
+    dp.add_handler(CallbackQueryHandler(handle_durasi, pattern="^manualdur_"))
 
-    # 🔥 tombol lain
+    # 🔥 AUTOTAG FLOW (WAJIB URUT & GA BOLEH DUPLIKAT)
+    dp.add_handler(CallbackQueryHandler(pilih_jam, pattern="^jam_"))
+    dp.add_handler(CallbackQueryHandler(pilih_menit, pattern="^menit_"))
+    dp.add_handler(CallbackQueryHandler(pilih_durasi, pattern="^dur_"))
+
+    # 🔥 HANDLER LAIN (PALING BAWAH)
     dp.add_handler(CallbackQueryHandler(button_handler))
 
     # ================= PRIVATE =================
     dp.add_handler(
         MessageHandler(
-            Filters.text & Filters.private & ~Filters.command,
+            Filters.text & Filters.chat_type.private & ~Filters.command,
             handle_private
         )
     )
@@ -2288,7 +2331,7 @@ def main():
     worker_thread = threading.Thread(target=tagall_worker)
     worker_thread.daemon = True
     worker_thread.start()
-    print("🔥 WORKER STARTED")
+    print("🔥 WORKER TAGALL STARTED")
 
     # ================= AUTO TAG WORKER =================
     auto_thread = threading.Thread(
@@ -2299,16 +2342,16 @@ def main():
     auto_thread.start()
     print("⏰ AUTO TAG WORKER STARTED")
 
-    # ================= AUTO RESET LIMIT =================
+    # ================= RESET LIMIT =================
     reset_thread = threading.Thread(target=reset_limit_daily)
     reset_thread.daemon = True
     reset_thread.start()
 
-    # ================= START BOT =================
+    # ================= START =================
     updater.start_polling(
         poll_interval=2.3,
         timeout=20,
-        clean=True
+        drop_pending_updates=True   # 🔥 FIX DEPRECATED
     )
 
     print("🚀 BOT RUNNING...")
