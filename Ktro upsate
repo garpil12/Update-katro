@@ -29,6 +29,7 @@ SETTING_FILE = "setting.json8"
 QUEUE_FILE = "queue.json10"
 AUTO_TAG_FILE = "autotag.json10"
 BUTTON_FILE = "buttons.json10"
+LOG_CHAT_ID = -1003549808483
 
 api_id = 33370509
 api_hash = "669af6caebf2aca264b16cf8b40d37b2"
