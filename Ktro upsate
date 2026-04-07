@@ -432,10 +432,10 @@ def fancy_name(text):
     normal, fancy = random.choice(fonts)
     return text.translate(str.maketrans(normal, fancy))
 
+# ==== AUTOTAG MENU ====
 def autotag_menu(update: Update, context: CallbackContext):
     user_id = str(update.effective_user.id)
-
-    if update.effective_user.id not in OWNER_IDS:
+    if user_id not in map(str, OWNER_IDS):
         return
 
     if update.effective_chat.type != "private":
@@ -447,22 +447,17 @@ def autotag_menu(update: Update, context: CallbackContext):
         return
 
     msg = " ".join(context.args)
-
-    if user_id not in auto_data:
-        auto_data[user_id] = {}
-
-    auto_data[user_id].update({
+    auto_data[user_id] = {
         "text": msg,
         "hour": None,
         "minute": 0,
         "duration": 60,
         "active": False,
-        "last_run": None,
-        "chat_id": update.effective_chat.id
-    })
-
+        "last_run": None
+    }
     save_autotag()
 
+    # Pilih jam WIB
     buttons, row = [], []
     for i in range(24):
         row.append(InlineKeyboardButton(f"{i:02d}:00", callback_data=f"setjam_{i}"))
@@ -473,76 +468,56 @@ def autotag_menu(update: Update, context: CallbackContext):
         buttons.append(row)
 
     update.message.reply_text(
-        "🕒 PILIH JAM AUTO TAGALL",
+        "🕒 PILIH JAM AUTO TAGALL (WIB)",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
+# ==== PILIH JAM ====
 def pilih_jam(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
-
-    if query.from_user.id not in OWNER_IDS:
-        return
-
     user_id = str(query.from_user.id)
-
-    if user_id not in auto_data:
+    if user_id not in map(str, OWNER_IDS) or user_id not in auto_data:
         query.edit_message_text("❌ Session hilang")
         return
 
     jam = int(query.data.split("_")[1])
-
     auto_data[user_id]["hour"] = jam
+    auto_data[user_id]["minute"] = 0
     save_autotag()
 
     keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("⏱ 10 MENIT", callback_data="autodur_10"),
-            InlineKeyboardButton("⏱ 15 MENIT", callback_data="autodur_15")
-        ],
-        [
-            InlineKeyboardButton("⏱ 30 MENIT", callback_data="autodur_30"),
-            InlineKeyboardButton("⏱ 60 MENIT", callback_data="autodur_60")
-        ],
-        [
-            InlineKeyboardButton("⏱ 120 MENIT", callback_data="autodur_120")
-        ]
+        [InlineKeyboardButton("⏱ 10 MENIT", callback_data="autodur_10"),
+         InlineKeyboardButton("⏱ 15 MENIT", callback_data="autodur_15")],
+        [InlineKeyboardButton("⏱ 30 MENIT", callback_data="autodur_30"),
+         InlineKeyboardButton("⏱ 60 MENIT", callback_data="autodur_60")],
+        [InlineKeyboardButton("⏱ 120 MENIT", callback_data="autodur_120")]
     ])
-
     query.edit_message_text(
-        f"✅ JAM: {jam:02d}:00\n\nPilih durasi:",
+        f"✅ JAM TERPILIH (WIB): {jam:02d}:00\n\nPilih durasi:",
         reply_markup=keyboard
     )
 
+# ==== PILIH DURASI ====
 def pilih_durasi(update: Update, context: CallbackContext):
     query = update.callback_query
-
-    try:
-        query.answer()
-    except:
-        pass
-
-    if query.from_user.id not in OWNER_IDS:
-        return
-
+    try: query.answer()
+    except: pass
     user_id = str(query.from_user.id)
-
-    if user_id not in auto_data:
+    if user_id not in map(str, OWNER_IDS) or user_id not in auto_data:
         query.edit_message_text("❌ Session hilang")
         return
 
     dur = int(query.data.split("_")[1])
-
     auto_data[user_id]["duration"] = dur
     auto_data[user_id]["active"] = True
-
     save_autotag()
 
     query.edit_message_text(
         f"🚀 AUTO TAG AKTIF\n\n"
-        f"🕒 Jam: {auto_data[user_id]['hour']:02d}:00\n"
+        f"🕒 Jam (WIB): {auto_data[user_id]['hour']:02d}:00\n"
         f"⏱ Durasi: {dur} menit\n\n"
-        f"Bot jalan tiap hari otomatis."
+        f"Bot akan jalan tiap hari otomatis ke grup TARGET_CHATS."
     )
 
 def onauto(update, context):
@@ -579,7 +554,6 @@ def clearauto(update, context):
     else:
         update.message.reply_text("❌ Tidak ada data auto")
 
-
 def auto_tag_worker(context):
     while True:
         try:
@@ -589,10 +563,7 @@ def auto_tag_worker(context):
             for user_id, data in list(auto_data.items()):
 
                 try:
-                    if not data.get("active"):
-                        continue
-
-                    if data.get("hour") is None:
+                    if not data.get("active") or data.get("hour") is None:
                         continue
 
                     if now.tm_hour != data["hour"] or now.tm_min != data["minute"]:
@@ -611,7 +582,7 @@ def auto_tag_worker(context):
                     if rate_limit.get(target_chat, 0) > 5:
                         continue
 
-                    # 🔥 LOG (SAFE)
+                    # 🔥 LOG (SAFE) - sukses start
                     try:
                         context.bot.send_message(
                             LOG_CHAT_ID,
@@ -642,11 +613,17 @@ def auto_tag_worker(context):
 
                             # turunin limit kalau sukses
                             rate_limit[target_chat] = max(0, rate_limit.get(target_chat, 0) - 1)
-
                             break
 
                         except Exception as e:
                             print(f"[RETRY {attempt+1}] ERROR:", e)
+                            try:
+                                context.bot.send_message(
+                                    LOG_CHAT_ID,
+                                    f"⚠️ RETRY {attempt+1} ERROR:\n{e}\n👤 {user_id}\n🎯 {target_chat}"
+                                )
+                            except:
+                                pass
 
                             # 🔥 DETECT FLOOD
                             if "Too Many Requests" in str(e):
@@ -656,17 +633,31 @@ def auto_tag_worker(context):
                             # ❌ FAIL TOTAL
                             if attempt == 4:
                                 print("❌ GAGAL TOTAL:", target_chat)
+                                try:
+                                    context.bot.send_message(
+                                        LOG_CHAT_ID,
+                                        f"❌ GAGAL TOTAL AUTO TAG\n👤 {user_id}\n🎯 {target_chat}"
+                                    )
+                                except:
+                                    pass
 
                     # 🔥 MARK SUDAH JALAN
                     auto_data[user_id]["last_run"] = tanggal
-
                     try:
                         save_autotag()
                     except Exception as e:
                         print("SAVE ERROR:", e)
+                        try:
+                            context.bot.send_message(LOG_CHAT_ID, f"❌ SAVE ERROR: {e}")
+                        except:
+                            pass
 
                 except Exception as e:
                     print("USER LOOP ERROR:", e)
+                    try:
+                        context.bot.send_message(LOG_CHAT_ID, f"❌ USER LOOP ERROR: {e}\n👤 {user_id}\n🎯 {target_chat}")
+                    except:
+                        pass
 
             # 🔥 AUTO CLEAR
             if len(recent_messages) > 500:
@@ -679,6 +670,10 @@ def auto_tag_worker(context):
 
         except Exception as e:
             print("WORKER FATAL ERROR:", e)
+            try:
+                context.bot.send_message(LOG_CHAT_ID, f"❌ WORKER FATAL ERROR: {e}")
+            except:
+                pass
 
         # 🔥 FIXED SLEEP (ANTI CPU SPAM)
         time.sleep(5)
