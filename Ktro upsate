@@ -437,91 +437,120 @@ def fancy_name(text):
 # ==== AUTOTAG MENU ====
 def autotag_menu(update: Update, context: CallbackContext):
     user_id = str(update.effective_user.id)
-    if user_id not in map(str, OWNER_IDS):
-        return
 
-    if update.effective_chat.type != "private":
-        update.message.reply_text("❌ Gunakan di private")
-        return
+    try:
+        if not context.args:
+            update.message.reply_text("❌ /autotag pesan")
+            context.bot.send_message(
+                LOG_CHAT_ID,
+                f"❌ GAGAL SET AUTOTAG\n👤 {user_id}\nAlasan: Tidak ada pesan"
+            )
+            return
 
-    if not context.args:
-        update.message.reply_text("❌ Contoh:\n/autotag pesan")
-        return
+        text = " ".join(context.args)
 
-    msg = " ".join(context.args)
-    auto_data[user_id] = {
-        "text": msg,
-        "hour": None,
-        "minute": 0,
-        "duration": 60,
-        "active": False,
-        "last_run": None
-    }
-    save_autotag()
+        auto_data[user_id] = {
+            "text": text,
+            "hour": None,
+            "minute": None,
+            "duration": 10,
+            "active": False,
+            "last_run": None,
+            "chat_id": update.effective_chat.id
+        }
+        save_autotag()
 
-    # Pilih jam WIB
-    buttons, row = [], []
-    for i in range(24):
-        row.append(InlineKeyboardButton(f"{i:02d}:00", callback_data=f"setjam_{i}"))
-        if len(row) == 4:
-            buttons.append(row)
+        # 🔥 LOG SUKSES SET PESAN
+        context.bot.send_message(
+            LOG_CHAT_ID,
+            f"🟡 SET AUTOTAG\n"
+            f"👤 {user_id}\n"
+            f"💬 Pesan: {text}"
+        )
+
+        # 🔥 JAM + MENIT
+        buttons = []
+        for h in range(24):
             row = []
-    if row:
-        buttons.append(row)
+            for m in [0, 15, 30, 45]:
+                row.append(
+                    InlineKeyboardButton(
+                        f"{h:02d}:{m:02d}",
+                        callback_data=f"setjam_{h}_{m}"
+                    )
+                )
+            buttons.append(row)
 
-    update.message.reply_text(
-        "🕒 PILIH JAM AUTO TAGALL (WIB)",
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+        update.message.reply_text(
+            "🕒 PILIH JAM",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
+    except Exception as e:
+        print("AUTOTAG MENU ERROR:", e)
+        try:
+            context.bot.send_message(
+                LOG_CHAT_ID,
+                f"❌ ERROR AUTOTAG MENU\n👤 {user_id}\n{e}"
+            )
+        except Exception as ee:
+            print("LOG FAIL:", ee)
+
 
 # ==== PILIH JAM ====
 def pilih_jam(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
-    user_id = str(query.from_user.id)
-    if str(user_id) not in map(str, OWNER_IDS) or str(user_id) not in auto_data:
-        query.edit_message_text("❌ Session hilang")
-        return
 
-    jam = int(query.data.split("_")[1])
-    menit = int(query.data.split("_")[2]) if len(query.data.split("_"))>2 else 0
-    auto_data[user_id]["hour"] = jam
-    auto_data[user_id]["minute"] = menit
+    user_id = str(query.from_user.id)
+
+    _, h, m = query.data.split("_")
+
+    auto_data[user_id]["hour"] = int(h)
+    auto_data[user_id]["minute"] = int(m)
     save_autotag()
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⏱ 10 MENIT", callback_data="autodur_10"),
-         InlineKeyboardButton("⏱ 15 MENIT", callback_data="autodur_15")],
-        [InlineKeyboardButton("⏱ 30 MENIT", callback_data="autodur_30"),
-         InlineKeyboardButton("⏱ 60 MENIT", callback_data="autodur_60")],
-        [InlineKeyboardButton("⏱ 120 MENIT", callback_data="autodur_120")]
+        [InlineKeyboardButton("10 MENIT", callback_data="dur_10"),
+         InlineKeyboardButton("15 MENIT", callback_data="dur_15")],
+        [InlineKeyboardButton("30 MENIT", callback_data="dur_30"),
+         InlineKeyboardButton("60 MENIT", callback_data="dur_60")]
     ])
+
     query.edit_message_text(
-        f"✅ JAM TERPILIH (WIB): {jam:02d}:{menit:02d}\n\nPilih durasi:",
+        f"✅ JAM: {h}:{m}\nPilih durasi:",
         reply_markup=keyboard
     )
 
 # ==== PILIH DURASI ====
 def pilih_durasi(update: Update, context: CallbackContext):
     query = update.callback_query
-    try: query.answer()
-    except: pass
+    query.answer()
+
     user_id = str(query.from_user.id)
-    if str(user_id) not in map(str, OWNER_IDS) or str(user_id) not in auto_data:
-        query.edit_message_text("❌ Session hilang")
-        return
 
     dur = int(query.data.split("_")[1])
+
     auto_data[user_id]["duration"] = dur
     auto_data[user_id]["active"] = True
     save_autotag()
 
+    h = auto_data[user_id]["hour"]
+    m = auto_data[user_id]["minute"]
+
     query.edit_message_text(
-        f"🚀 AUTO TAG AKTIF\n\n"
-        f"🕒 Jam (WIB): {auto_data[user_id]['hour']:02d}:{auto_data[user_id]['minute']:02d}\n"
-        f"⏱ Durasi: {dur} menit\n\n"
-        f"Bot akan jalan tiap hari otomatis ke grup TARGET_CHATS."
+        f"🚀 AUTO TAG AKTIF\n"
+        f"🕒 {h:02d}:{m:02d}\n"
+        f"⏱ {dur} menit\n"
+        f"📆 1x sehari"
     )
+
+    # 🔥 LOG AKTIF
+    context.bot.send_message(
+        LOG_CHAT_ID,
+        f"🟢 AUTOTAG AKTIF\n👤 {user_id}\n🕒 {h:02d}:{m:02d}"
+    )
+
 def onauto(update, context):
     user_id = str(update.effective_user.id)
 
