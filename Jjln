@@ -61,91 +61,83 @@ def load_setting():
         print("❌ LOAD SETTING ERROR:", e)
         return {}
 
-
-def save_setting(data):
+# ================= FILE (FIXED & SUPER STABLE) =================
+def save_partner(data):
     import json
     import os
     import time
     import shutil
 
     try:
-        # ================= VALIDASI =================
-        if not isinstance(data, dict):
-            data = {}
+        # 🔥 DEBUG WAJIB
+        print("🔥 SAVE DIPANGGIL DARI:", len(data), "DATA")
 
-        # ================= AUTO BACKUP =================
-        if os.path.exists(SETTING_FILE):
-            backup_dir = "backup_settings"
+        # ================= VALIDASI =================
+        if not isinstance(data, list):
+            print("❌ DATA BUKAN LIST")
+            return
+
+        clean_data = []
+        seen = set()
+
+        for p in data:
+            if isinstance(p, dict) and "link" in p:
+                link = p.get("link")
+
+                if not link or not isinstance(link, str):
+                    continue
+
+                # 🔥 anti duplicate
+                if link in seen:
+                    continue
+
+                seen.add(link)
+                clean_data.append(p)
+
+        # ================= 🔒 ANTI DATA HILANG =================
+        if len(clean_data) == 0 and os.path.exists(PARTNER_FILE):
+            print("⚠️ DETECT SAVE KOSONG, DIBATALKAN (ANTI WIPE)")
+            return
+
+        # ================= BACKUP =================
+        if os.path.exists(PARTNER_FILE):
+            backup_dir = "backup_partner"
 
             if not os.path.exists(backup_dir):
                 os.makedirs(backup_dir)
 
             timestamp = int(time.time())
-            backup_file = f"{backup_dir}/setting_{timestamp}.json"
+            backup_file = f"{backup_dir}/partner_{timestamp}.json"
 
-            shutil.copy(SETTING_FILE, backup_file)
-            print(f"📦 Backup dibuat: {backup_file}")
+            try:
+                shutil.copy(PARTNER_FILE, backup_file)
+                print(f"📦 Backup partner: {backup_file}")
+            except Exception as e:
+                print("❌ Backup error:", e)
 
-        # ================= SAFE SAVE =================
-        temp_file = SETTING_FILE + ".tmp"
+        # ================= SAFE WRITE =================
+        temp_file = PARTNER_FILE + ".tmp"
 
         with open(temp_file, "w") as f:
-            json.dump(data, f, indent=2)
-
-        os.replace(temp_file, SETTING_FILE)
-
-        print("✅ SETTING KE SAVE")
-
-        # ================= AUTO CLEAN (BIAR GA NUMPUK) =================
-        backups = sorted(os.listdir("backup_settings"))
-
-        if len(backups) > 10:  # simpan max 10 backup
-            for old in backups[:-10]:
-                os.remove(f"backup_settings/{old}")
-                print(f"🗑️ Backup lama dihapus: {old}")
-
-    except Exception as e:
-        print("❌ SAVE SETTING ERROR:", e)
-
-
-# ================= FILE (JANGAN DIUBAH) =================
-def load_partner():
-    if not os.path.exists(PARTNER_FILE):
-        return []
-
-    try:
-        with open(PARTNER_FILE, "r") as f:
-            data = json.load(f)
-
-        # 🔥 pastikan list
-        if not isinstance(data, list):
-            return []
-
-        # 🔥 filter hanya data valid (dict)
-        clean_data = []
-        for p in data:
-            if isinstance(p, dict):
-                clean_data.append(p)
-
-        return clean_data
-
-    except Exception as e:
-        print("❌ load error:", e)
-        return []
-
-
-def save_partner(data):
-    try:
-        # 🔥 hanya simpan yang valid
-        clean_data = [p for p in data if isinstance(p, dict)]
-
-        with open(PARTNER_FILE, "w") as f:
             json.dump(clean_data, f, indent=2)
 
-        print("✅ KE SAVE:", clean_data)
+        os.replace(temp_file, PARTNER_FILE)
+
+        print(f"✅ PARTNER KE SAVE ({len(clean_data)} data)")
+
+        # ================= AUTO CLEAN BACKUP =================
+        try:
+            backups = sorted(os.listdir("backup_partner"))
+
+            if len(backups) > 20:
+                for old in backups[:-20]:
+                    os.remove(f"backup_partner/{old}")
+                    print(f"🗑️ Backup lama dihapus: {old}")
+        except Exception as e:
+            print("❌ CLEAN BACKUP ERROR:", e)
 
     except Exception as e:
-        print("❌ save error:", e)
+        print("❌ SAVE PARTNER ERROR:", e)
 
 # ================= BUTTON =================
 
