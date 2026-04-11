@@ -1378,30 +1378,6 @@ def del_rules(update, context):
     save_setting(data)
     update.message.reply_text("✅  rules dihapus")
 
-def livechat_button(update, context):
-    query = update.callback_query
-    query.answer()
-
-    if query.from_user.id not in OWNER_IDS:
-        return query.answer("❌ Bukan owner", show_alert=True)
-
-    query.message.reply_text(
-        "📥 Gunakan command:\n/addlivechat https://t.me/xxxx"
-    )
-
-def del_livechat_button(update, context):
-    query = update.callback_query
-    query.answer()
-
-    if query.from_user.id not in OWNER_IDS:
-        return query.answer("❌ Bukan owner", show_alert=True)
-
-    data = load_setting()
-    data.pop("livechat", None)
-    save_setting(data)
-
-    query.message.reply_text("✅ Live chat berhasil dihapus")
-
 def off_cmd(update, context):
     global WORKER_ACTIVE
 
