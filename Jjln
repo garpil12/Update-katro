@@ -1507,12 +1507,14 @@ def start_cmd(update: Update, context: CallbackContext):
 
     # ================= RGB GLITCH =================
     glitch = [
-        "💜 K̷A̷T̷R̷O̷ 💜",
-        "💙 K̶A̶T̶R̶O̶ 💙",
-        "💚 K̵A̵T̵R̵O̵ 💚",
-        "💛 K̷A̷T̷R̷O̷ 💛",
-        "🧡 K̶A̶T̶R̶O̶ 🧡",
-        "❤️ K̵A̵T̵R̵O̵ ❤️"
+        "⏩ H ",
+        "⏩ H Y ",
+        "⏩ H Y P ",
+        "⏩ H Y P E ",
+        "⏩ H Y P E R ",
+        "⏩ H Y P E R I ",
+        "⏩ H Y P E R I O ",
+        "⏩ H Y P E R I O N ",
     ]
 
     for g in glitch:
@@ -1556,7 +1558,7 @@ def start_cmd(update: Update, context: CallbackContext):
 
     # ================= FINAL TEXT (FIX CLEAN) =================
     text = (
-        "𓊆 ✨  𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝗕𝗢𝗧 𝐊𝐀𝐓𝐑𝐎 ✨ 𓊇 \n\n"
+        "𓊆 ✨  𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝗕𝗢𝗧 𝗛𝗬𝗣𝗘𝗥𝗜𝗢𝗡  ✨ 𓊇 \n\n"
 
         "╭───────────────╮\n"
         "│ ٬٬ ࣪ ، 𒀭 bot tag all dengan sistem otomatis.\n"
@@ -2378,7 +2380,7 @@ def restore_cmd(update, context):
         update.message.reply_text("✅ restore sukses, bot akan restart...")
 
         # ================= AUTO RESTART =================
-        os.execv("/root/autobot/venv/bin/python", ["python", "bot2.py"])
+        os.execv("/root/tagallbot/venv/bin/python", ["python", "bot0.py"])
 
     except Exception as e:
         update.message.reply_text(f"❌ restore gagal\n{e}")
