@@ -1515,12 +1515,12 @@ def start_cmd(update: Update, context: CallbackContext):
 
     # ================= RGB GLITCH =================
     glitch = [
-        "⚡ N̶I̶G̶H̶T̶ H̶A̶V̶E̶N̶ ⚡"
-        "✨ N̵I̵G̵H̵T̵ H̵A̵V̵E̶N̶ ✨"
-        "🔥 N̷I̷G̷H̷T̷ H̷A̷V̶E̶N̶ 🔥"
-        "💥 N̶I̶G̶H̶T̶ H̵A̵V̵E̵N̵ 💥"
-        "⚡ N̵I̵G̵H̵T̵ H̶A̶V̶E̶N̶ ⚡"
-        "✨ N̷I̷G̷H̷T̷ H̵A̵V̵E̶N̶ ✨"
+        "⚡ N̶I̶G̶H̶T̶ H̶A̶V̶E̶N̶ ⚡",
+        "✨ N̵I̵G̵H̵T̵ H̵A̵V̵E̶N̶ ✨",
+        "🔥 N̷I̷G̷H̷T̷ H̷A̷V̶E̶N̶ 🔥",
+        "💥 N̶I̶G̶H̶T̶ H̵A̵V̵E̵N̵ 💥",
+        "⚡ N̵I̵G̵H̵T̵ H̶A̶V̶E̶N̶ ⚡",
+        "✨ N̷I̷G̷H̷T̷ H̵A̵V̵E̶N̶ ✨",
     ]
 
     for g in glitch:
