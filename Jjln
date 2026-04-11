@@ -15,6 +15,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, CommandHandler, CallbackQueryHandler
 from telethon import TelegramClient
 import database8
+from database8 import load_partner, save_partner
 from emoji import build_emoji
 
 loop = asyncio.new_event_loop()
@@ -62,19 +63,49 @@ def load_setting():
         return {}
 
 # ================= FILE (FIXED & SUPER STABLE) =================
+# ================= FILE (FIXED SUPER STABLE + DEBUG) =================
+
+def load_partner():
+    import os
+    import json
+
+    if not os.path.exists(PARTNER_FILE):
+        print("⚠️ partner file ga ada, return kosong")
+        return []
+
+    try:
+        with open(PARTNER_FILE, "r") as f:
+            data = json.load(f)
+
+        if not isinstance(data, list):
+            print("⚠️ format bukan list, return kosong")
+            return []
+
+        print(f"✅ LOAD PARTNER ({len(data)} data)")
+        return data
+
+    except Exception as e:
+        print("❌ LOAD PARTNER ERROR:", e)
+        return []
+
+
 def save_partner(data):
     import json
     import os
     import time
     import shutil
+    import traceback
 
     try:
-        # 🔥 DEBUG WAJIB
-        print("🔥 SAVE DIPANGGIL DARI:", len(data), "DATA")
+        print("\n🔥 SAVE PARTNER DIPANGGIL")
+        print("📊 TOTAL DATA MASUK:", len(data))
+
+        # 🔥 TRACE SIAPA YANG MANGGIL
+        traceback.print_stack()
 
         # ================= VALIDASI =================
         if not isinstance(data, list):
-            print("❌ DATA BUKAN LIST")
+            print("❌ DATA BUKAN LIST, CANCEL")
             return
 
         clean_data = []
@@ -87,16 +118,15 @@ def save_partner(data):
                 if not link or not isinstance(link, str):
                     continue
 
-                # 🔥 anti duplicate
                 if link in seen:
                     continue
 
                 seen.add(link)
                 clean_data.append(p)
 
-        # ================= 🔒 ANTI DATA HILANG =================
+        # ================= 🔒 ANTI WIPE =================
         if len(clean_data) == 0 and os.path.exists(PARTNER_FILE):
-            print("⚠️ DETECT SAVE KOSONG, DIBATALKAN (ANTI WIPE)")
+            print("🚨 DETECT DATA JADI 0 → SAVE DIBATALKAN (ANTI HILANG)")
             return
 
         # ================= BACKUP =================
@@ -111,7 +141,7 @@ def save_partner(data):
 
             try:
                 shutil.copy(PARTNER_FILE, backup_file)
-                print(f"📦 Backup partner: {backup_file}")
+                print(f"📦 Backup dibuat: {backup_file}")
             except Exception as e:
                 print("❌ Backup error:", e)
 
@@ -123,7 +153,7 @@ def save_partner(data):
 
         os.replace(temp_file, PARTNER_FILE)
 
-        print(f"✅ PARTNER KE SAVE ({len(clean_data)} data)")
+        print(f"✅ BERHASIL SAVE ({len(clean_data)} data)")
 
         # ================= AUTO CLEAN BACKUP =================
         try:
@@ -133,12 +163,11 @@ def save_partner(data):
                 for old in backups[:-20]:
                     os.remove(f"backup_partner/{old}")
                     print(f"🗑️ Backup lama dihapus: {old}")
-        except Exception as e:
-            print("❌ CLEAN BACKUP ERROR:", e)
+        except:
+            pass
 
     except Exception as e:
         print("❌ SAVE PARTNER ERROR:", e)
-
 # ================= BUTTON =================
 
 def load_buttons():
