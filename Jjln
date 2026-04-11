@@ -1261,9 +1261,6 @@ def help_owner(update: Update, context: CallbackContext):
     if user_id not in OWNER_IDS:
         return
 
-    data = load_setting()  # ambil setting
-    livechat = data.get("livechat")  # ambil link
-
     text = (
         "👑 𝗢𝗪𝗡𝗘𝗥 𝗣𝗔𝗡𝗘𝗟\n"
         "━━━━━━━━━━━━━━━━━━\n\n"
@@ -1304,7 +1301,7 @@ def help_owner(update: Update, context: CallbackContext):
         "⚡ Klik tombol / pakai command manual"
     )
 
-    keyboard = [
+    keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🖼️ Add", callback_data="cmd_addpict"),
             InlineKeyboardButton("🗑️ Del", callback_data="cmd_delpict")
@@ -1312,8 +1309,33 @@ def help_owner(update: Update, context: CallbackContext):
         [
             InlineKeyboardButton("👤 Add PJ", callback_data="cmd_addpj"),
             InlineKeyboardButton("❌ Del PJ", callback_data="cmd_delpj")
+        ],
+        [
+            InlineKeyboardButton("💬 Add LiveChat", callback_data="cmd_addlivechat"),
+            InlineKeyboardButton("🗑️ Del LiveChat", callback_data="cmd_dellivechat")
+        ],
+        [
+            InlineKeyboardButton("📋 Partner", callback_data="cmd_listpartner")
+        ],
+        [
+            InlineKeyboardButton("📢 Broadcast", callback_data="cmd_bc")
+        ],
+        [
+            InlineKeyboardButton("🏷️ Tagall", callback_data="cmd_tagall")
+        ],
+        [
+            InlineKeyboardButton("🤖 AutoTag", callback_data="cmd_autotag")
+        ],
+        [
+            InlineKeyboardButton("🟢 ON", callback_data="cmd_on"),
+            InlineKeyboardButton("🔴 OFF", callback_data="cmd_off")
+        ],
+        [
+            InlineKeyboardButton("👑 Creator", url="https://t.me/Brsik23")
         ]
-    ]
+    ])
+
+    update.message.reply_text(text, reply_markup=keyboard)
     
 
 def add_pict(update, context):
