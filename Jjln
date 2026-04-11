@@ -2014,7 +2014,7 @@ def tagall_worker():
                 "🚀 𝐓𝐀𝐆𝐀𝐋𝐋 𝐃𝐈𝐌𝐔𝐋𝐀𝐈\n\n"
                 f"🔗 partner : {partner_link}\n"
                 "⏰    durasi : 5 menit\n"
-                "📍 JIKA BOT EROR SILAHKAN KESINI "
+                "📍 JIKA BOT EROR SILAHKAN KESINI @livechtBot"
             )
 
             keyboard_start = InlineKeyboardMarkup([
