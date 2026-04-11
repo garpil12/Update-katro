@@ -14,30 +14,29 @@ from queue import Queue
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, CommandHandler, CallbackQueryHandler
 from telethon import TelegramClient
-import database8
-from database8 import load_partner, save_partner
+import database0
 from emoji import build_emoji
 
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
-TOKEN = "8618687689:AAFep2yL5CCUgRbT5WVMJazanJ4A46mYfkk"
+
+TOKEN = "8307438695:AAGsyFa0IJQqv1zI1btvrqQsF4jnvMVLi5Q"
 API_URL = "http://127.0.0.1:5000/get"
-TARGET_CHATS = [-1003386661267]
-FORCE_GROUP = -1003386661267   # 🔥 WAJIB (buat cek join)
-FORCE_LINK = "https://t.me/officiallgarfieldgrub"
-PARTNER_FILE = "partner.json10"
-SETTING_FILE = "setting.json8"
-QUEUE_FILE = "queue.json10"
-AUTO_TAG_FILE = "autotag.json10"
-BUTTON_FILE = "buttons.json10"
-LOG_CHAT_ID = -1003549808483
-OWNER_IDS = [8209644174, 8598793649, 7973806575]
+TARGET_CHATS = [-1002430300514]
+FORCE_GROUP = -1002430300514   # 🔥 WAJIB (buat cek join)
+FORCE_LINK = "https://t.me/officialhyperion"
+OWNER_IDS = [8209644174, 5674665043, 8730304700]
+PARTNER_FILE = "partner.json0"
+SETTING_FILE = "setting.json0"
+BUTTON_FILE = "buttons.json0"
+AUTO_TAG_FILE = "autotag.json"
+LOG_CHAT_ID = -1003812690414
+QUEUE_FILE = "queue.json"
 
 api_id = 33370509
 api_hash = "669af6caebf2aca264b16cf8b40d37b2"
-client = TelegramClient("session_new10", api_id, api_hash)
-
+client = TelegramClient("session_new0", api_id, api_hash)
 task_queue = Queue()
 running_task = False  # 🔥 ANTI DOUBLE TASK
 
