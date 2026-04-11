@@ -2330,7 +2330,7 @@ def restore_cmd(update, context):
         update.message.reply_text("✅ restore sukses, bot akan restart...")
 
         # ================= AUTO RESTART =================
-        os.execv("/root/noirbot/venv/bin/python", ["python", "bot6.py"])
+        os.execv("/root/autobot/venv/bin/python", ["python", "bot2.py"])
 
     except Exception as e:
         update.message.reply_text(f"❌ restore gagal\n{e}")
