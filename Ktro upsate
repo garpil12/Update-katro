@@ -1187,6 +1187,10 @@ def help_owner(update: Update, context: CallbackContext):
         "➜ /addpj    (tambah PJ)\n"
         "➜ /delpj    (hapus PJ)\n\n"
 
+        "💬 𝗟𝗜𝗩𝗘 𝗖𝗛𝗔𝗧\n"
+        "➜ /addlivechat link\n"
+        "➜ /dellivechat\n\n"
+     
         "📋 𝗣𝗔𝗥𝗧𝗡𝗘𝗥\n"
         "➜ /listpartner\n\n"
 
