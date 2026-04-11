@@ -40,11 +40,8 @@ client = TelegramClient("session_new0", api_id, api_hash)
 task_queue = Queue()
 running_task = False  # 🔥 ANTI DOUBLE TASK
 
-# ================= SETTING =================
+# ================= SETTING ============
 def load_setting():
-    import os
-    import json
-
     if not os.path.exists(SETTING_FILE):
         return {}
 
@@ -60,6 +57,20 @@ def load_setting():
     except Exception as e:
         print("❌ LOAD SETTING ERROR:", e)
         return {}
+
+
+def save_setting(data):
+    try:
+        # pastikan folder ada (kalau nanti path dipindah)
+        folder = os.path.dirname(SETTING_FILE)
+        if folder and not os.path.exists(folder):
+            os.makedirs(folder)
+
+        with open(SETTING_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+
+    except Exception as e:
+        print("❌ SAVE SETTING ERROR:", e)
 
 # ================= FILE (FIXED & SUPER STABLE) =================
 # ================= FILE (FIXED SUPER STABLE + DEBUG) =================
